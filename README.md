@@ -1,3 +1,4 @@
+<img width="1929" height="872" alt="kanban" src="https://github.com/user-attachments/assets/5208535f-2225-40e9-acc9-55d78eecc9ef" />
 # Kanban Board
 
 A fully functional Kanban board with drag-and-drop task management, built with plain HTML, CSS and JavaScript. No backend, external APIs or dependencies are needed.
@@ -60,4 +61,4 @@ kanban-board/
 
 ## Screenshots
 
-![Board](screenshots/board.png)
+![Board](screenshots/Board.png)<img width="1929" height="872" alt="board" src="https://github.com/user-attachments/assets/55ff50b9-4238-4160-b572-60b8fdf3c7ab" />

@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kanban Board</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#eef1f4;--surface:#fff;--col:#e3e8ee;--ink:#1b2330;--muted:#667085;--line:#d5dce5;--accent:#3b5bdb;--accent-ink:#fff;
+  --hi-bg:#fde8e8;--hi:#b42318;--md-bg:#fff1cf;--md:#8a5a00;--lo-bg:#dcf5e7;--lo:#1b7a4a;--shadow:0 1px 2px rgba(20,30,50,.08);
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#12161d;--surface:#1c222c;--col:#171c24;--ink:#e8ecf2;--muted:#8d97a8;--line:#2b3340;--accent:#7b93ff;--accent-ink:#0f1320;
+  --hi-bg:#4a1f22;--hi:#ff9b95;--md-bg:#4a3a12;--md:#ffd479;--lo-bg:#173b2a;--lo:#7fe0ab;--shadow:none}}
+:root[data-theme="dark"]{
+  --bg:#12161d;--surface:#1c222c;--col:#171c24;--ink:#e8ecf2;--muted:#8d97a8;--line:#2b3340;--accent:#7b93ff;--accent-ink:#0f1320;
+  --hi-bg:#4a1f22;--hi:#ff9b95;--md-bg:#4a3a12;--md:#ffd479;--lo-bg:#173b2a;--lo:#7fe0ab;--shadow:none}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.45 Manrope,system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:20px 24px 8px}
+h1{font-size:24px;font-weight:800;margin:0 auto 0 0;letter-spacing:-.02em}
+input,select,textarea,button{font:inherit;color:inherit}
+.field{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:9px 12px;min-width:0}
+.field:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+#q{width:220px}
+.btn{background:var(--accent);color:var(--accent-ink);border:0;border-radius:10px;padding:10px 16px;font-weight:600;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.board{display:grid;grid-template-columns:repeat(4,minmax(240px,1fr));gap:16px;padding:12px 24px 32px;overflow-x:auto;align-items:start}
+.column{background:var(--col);border-radius:14px;padding:12px;min-width:0}
+.col-head{display:flex;align-items:center;gap:8px;padding:2px 4px 10px}
+.dot{width:10px;height:10px;border-radius:50%}
+.col-head h2{font-size:15px;font-weight:800;margin:0}
+.count{background:var(--surface);border-radius:999px;padding:1px 9px;font-size:13px;font-weight:600;color:var(--muted)}
+.add{margin-left:auto;background:none;border:0;font-size:22px;line-height:1;cursor:pointer;color:var(--muted);border-radius:8px;width:30px;height:30px}
+.add:hover{background:var(--surface);color:var(--ink)}
+.list{display:flex;flex-direction:column;gap:10px;min-height:80px;border-radius:10px;padding:2px}
+.list.over{background:color-mix(in srgb,var(--accent) 8%,transparent)}
+.list:empty::before{content:"No tasks";color:var(--muted);font-size:13px;text-align:center;padding:22px 0}
+.card{background:var(--surface);border-radius:12px;padding:12px 12px 10px;box-shadow:var(--shadow);border:1px solid var(--line);border-left:4px solid var(--p);cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.card.High{--p:var(--hi)}.card.Medium{--p:#e0a100}.card.Low{--p:#2e9e6b}
+.card h3{margin:0 0 2px;font-size:15px;font-weight:600;overflow-wrap:anywhere}
+.card p{margin:0 0 8px;color:var(--muted);font-size:13.5px;overflow-wrap:anywhere}
+.meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.tag{font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px}
+.tag.High{background:var(--hi-bg);color:var(--hi)}.tag.Medium{background:var(--md-bg);color:var(--md)}.tag.Low{background:var(--lo-bg);color:var(--lo)}
+.due{font-size:12px;color:var(--muted);padding:2px 8px;border-radius:999px;border:1px solid var(--line)}
+.due.overdue{background:var(--hi-bg);color:var(--hi);border-color:transparent;font-weight:600}
+.acts{margin-left:auto;display:flex;gap:2px}
+.icon{background:none;border:0;cursor:pointer;color:var(--muted);padding:4px 7px;border-radius:7px;font-size:13px}
+.icon:hover{background:var(--col);color:var(--ink)}
+.drop{height:56px;border:2px dashed var(--accent);border-radius:12px;opacity:.6}
+.card.dragging{display:none}
+.ghost{position:fixed;left:0;top:0;z-index:50;pointer-events:none;transform-origin:center;box-shadow:0 14px 30px rgba(10,20,40,.28);rotate:2deg;cursor:grabbing}
+dialog{border:1px solid var(--line);border-radius:16px;background:var(--surface);color:var(--ink);padding:22px;width:min(440px,92vw)}
+dialog::backdrop{background:rgba(10,15,25,.5)}
+dialog h2{margin:0 0 14px;font-size:18px}
+label{display:block;font-size:13px;font-weight:600;margin:12px 0 4px}
+dialog .field{width:100%}
+textarea.field{resize:vertical;min-height:70px}
+.row{display:flex;gap:12px}.row>div{flex:1}
+.foot{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
+@media (max-width:640px){#q{width:100%}h1{width:100%}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Kanban Board</h1>
+  <input id="q" class="field" type="search" placeholder="Search tasks" aria-label="Search tasks">
+  <select id="pf" class="field" aria-label="Filter by priority">
+    <option value="">All priorities</option><option>High</option><option>Medium</option><option>Low</option>
+  </select>
+  <button class="btn" id="new">New task</button>
+</header>
+<main class="board" id="board"></main>
+
+<dialog id="dlg">
+  <form id="form" method="dialog">
+    <h2 id="dtitle">New task</h2>
+    <label for="f-title">Title</label>
+    <input id="f-title" class="field" required maxlength="80">
+    <label for="f-desc">Description</label>
+    <textarea id="f-desc" class="field" maxlength="400"></textarea>
+    <div class="row">
+      <div><label for="f-pri">Priority</label>
+        <select id="f-pri" class="field"><option>Low</option><option selected>Medium</option><option>High</option></select></div>
+      <div><label for="f-due">Due date</label><input id="f-due" class="field" type="date"></div>
+    </div>
+    <label for="f-status">Column</label>
+    <select id="f-status" class="field"></select>
+    <div class="foot">
+      <button type="button" class="btn ghost" id="cancel">Cancel</button>
+      <button type="submit" class="btn">Save task</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+const COLS = [
+  {id:'todo', name:'To Do', color:'#8a94a6'},
+  {id:'inprogress', name:'In Progress', color:'#3b5bdb'},
+  {id:'review', name:'Review', color:'#e0a100'},
+  {id:'done', name:'Done', color:'#2e9e6b'}
+];
+const KEY = 'kanban.v1';
+
+// ---------- data ----------
+const pad = n => String(n).padStart(2, '0');
+const dateStr = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const today = () => dateStr(new Date());
+const offsetDay = n => { const d = new Date(); d.setDate(d.getDate()+n); return dateStr(d); };
+
+function seed() {
+  return [
+    {id:1, title:'Design homepage', desc:'Create wireframes', priority:'High', status:'todo', due:offsetDay(3)},
+    {id:2, title:'Setup CI/CD', desc:'GitHub Actions pipeline', priority:'Medium', status:'inprogress', due:offsetDay(-1)},
+    {id:3, title:'Write API docs', desc:'OpenAPI spec', priority:'Low', status:'review', due:''}
+  ];
+}
+function load() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) { const v = JSON.parse(raw); if (Array.isArray(v)) return v; }
+  } catch (e) {}
+  return seed();
+}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(tasks)); } catch (e) {} }
+
+let tasks = load();
+let editingId = null, newStatus = 'todo';
+const $ = id => document.getElementById(id);
+const board = $('board');
+
+function el(tag, cls, text) {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text !== undefined) n.textContent = text;
+  return n;
+}
+
+// ---------- render ----------
+function visible(t) {
+  const q = $('q').value.trim().toLowerCase(), p = $('pf').value;
+  if (p && t.priority !== p) return false;
+  return !q || (t.title + ' ' + t.desc).toLowerCase().includes(q);
+}
+
+function cardEl(t) {
+  const c = el('div', 'card ' + t.priority);
+  c.dataset.id = t.id;
+  c.append(el('h3', '', t.title));
+  if (t.desc) c.append(el('p', '', t.desc));
+  const meta = el('div', 'meta');
+  meta.append(el('span', 'tag ' + t.priority, t.priority));
+  if (t.due) {
+    const over = t.due < today() && t.status !== 'done';
+    const label = new Date(t.due + 'T00:00').toLocaleDateString(undefined, {month:'short', day:'numeric'});
+    meta.append(el('span', 'due' + (over ? ' overdue' : ''), over ? 'Overdue · ' + label : label));
+  }
+  const acts = el('div', 'acts');
+  const ed = el('button', 'icon', 'Edit'); ed.dataset.act = 'edit'; ed.setAttribute('aria-label', 'Edit ' + t.title);
+  const del = el('button', 'icon', 'Delete'); del.dataset.act = 'delete'; del.setAttribute('aria-label', 'Delete ' + t.title);
+  acts.append(ed, del); meta.append(acts); c.append(meta);
+  return c;
+}
+
+function render() {
+  board.replaceChildren();
+  COLS.forEach(col => {
+    const all = tasks.filter(t => t.status === col.id);
+    const shown = all.filter(visible);
+    const sec = el('section', 'column');
+    const head = el('div', 'col-head');
+    const dot = el('span', 'dot'); dot.style.background = col.color;
+    const add = el('button', 'add', '+'); add.dataset.add = col.id; add.setAttribute('aria-label', 'Add task to ' + col.name);
+    head.append(dot, el('h2', '', col.name),
+      el('span', 'count', shown.length === all.length ? String(all.length) : shown.length + '/' + all.length), add);
+    const list = el('div', 'list'); list.dataset.col = col.id;
+    shown.forEach(t => list.append(cardEl(t)));
+    sec.append(head, list); board.append(sec);
+  });
+}
+
+// ---------- CRUD ----------
+function openDialog(task, status) {
+  editingId = task ? task.id : null;
+  $('dtitle').textContent = task ? 'Edit task' : 'New task';
+  $('f-title').value = task ? task.title : '';
+  $('f-desc').value = task ? task.desc : '';
+  $('f-pri').value = task ? task.priority : 'Medium';
+  $('f-due').value = task ? task.due || '' : '';
+  $('f-status').value = task ? task.status : status || 'todo';
+  $('dlg').showModal();
+  $('f-title').focus();
+}
+$('f-status').append(...COLS.map(c => { const o = el('option', '', c.name); o.value = c.id; return o; }));
+$('new').onclick = () => openDialog(null, 'todo');
+$('cancel').onclick = () => $('dlg').close();
+$('form').addEventListener('submit', e => {
+  e.preventDefault();
+  const data = {
+    title: $('f-title').value.trim(), desc: $('f-desc').value.trim(),
+    priority: $('f-pri').value, due: $('f-due').value, status: $('f-status').value
+  };
+  if (!data.title) return;
+  if (editingId) Object.assign(tasks.find(t => t.id === editingId), data);
+  else tasks.push({id: Date.now(), ...data});
+  save(); render(); $('dlg').close();
+});
+board.addEventListener('click', e => {
+  const add = e.target.closest('[data-add]');
+  if (add) return openDialog(null, add.dataset.add);
+  const btn = e.target.closest('[data-act]');
+  if (!btn) return;
+  const id = +btn.closest('.card').dataset.id, t = tasks.find(x => x.id === id);
+  if (btn.dataset.act === 'edit') openDialog(t);
+  else if (confirm('Delete "' + t.title + '"?')) { tasks = tasks.filter(x => x.id !== id); save(); render(); }
+});
+$('q').oninput = render; $('pf').onchange = render;
+
+// ---------- drag and drop (pointer events: mouse, touch, pen) ----------
+let start = null, drag = null;
+const ph = el('div', 'drop');
+
+board.addEventListener('pointerdown', e => {
+  const card = e.target.closest('.card');
+  if (!card || e.target.closest('button') || e.button !== 0) return;
+  start = {x: e.clientX, y: e.clientY, card};
+});
+window.addEventListener('pointermove', e => {
+  if (!start) return;
+  if (!drag) {
+    if (Math.hypot(e.clientX - start.x, e.clientY - start.y) < 6) return;
+    const r = start.card.getBoundingClientRect();
+    const ghost = start.card.cloneNode(true);
+    ghost.classList.add('ghost'); ghost.style.width = r.width + 'px';
+    document.body.append(ghost);
+    drag = {card: start.card, ghost, dx: start.x - r.left, dy: start.y - r.top};
+    ph.style.height = r.height + 'px';
+    start.card.classList.add('dragging');
+  }
+  drag.ghost.style.transform = `translate(${e.clientX - drag.dx}px,${e.clientY - drag.dy}px)`;
+  document.querySelectorAll('.list.over').forEach(l => l.classList.remove('over'));
+  const under = document.elementFromPoint(e.clientX, e.clientY);
+  const list = under && under.closest('.list');
+  if (!list) return ph.remove();
+  list.classList.add('over');
+  const next = [...list.querySelectorAll('.card:not(.dragging)')].find(c => {
+    const r = c.getBoundingClientRect(); return e.clientY < r.top + r.height / 2;
+  });
+  list.insertBefore(ph, next || null);
+});
+function endDrag(commit) {
+  if (!start) return;
+  if (drag) {
+    const list = ph.parentElement;
+    if (commit && list) {
+      const nextCard = ph.nextElementSibling;
+      moveTask(+drag.card.dataset.id, list.dataset.col, nextCard ? +nextCard.dataset.id : null);
+    }
+    drag.ghost.remove(); ph.remove();
+    document.querySelectorAll('.list.over').forEach(l => l.classList.remove('over'));
+    render();
+  }
+  start = drag = null;
+}
+window.addEventListener('pointerup', () => endDrag(true));
+window.addEventListener('pointercancel', () => endDrag(false));
+window.addEventListener('keydown', e => { if (e.key === 'Escape') endDrag(false); });
+
+function moveTask(id, status, beforeId) {
+  const t = tasks.find(x => x.id === id);
+  tasks = tasks.filter(x => x.id !== id);
+  t.status = status;
+  const i = beforeId ? tasks.findIndex(x => x.id === beforeId) : -1;
+  if (i < 0) tasks.push(t); else tasks.splice(i, 0, t);
+  save();
+}
+
+render();
+</script>
+</body>
+</html>
